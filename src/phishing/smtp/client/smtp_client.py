@@ -10,17 +10,25 @@ import glob
 import random
 import pexpect
 import base64
-import thread
-# python 2 to 3 fix
-try: from cStringIO import StringIO
-except NameError: from io import StringIO
-from email.MIMEMultipart import MIMEMultipart
-from email.MIMEBase import MIMEBase
-from email.MIMEText import MIMEText
+
+# python 2 to 3 fixes
+try:
+    import _thread as thread # Py3
+except ImportError:
+    import thread # Py2
+try:
+    from cStringIO import StringIO
+except ImportError:
+    from io import StringIO
+
+from email.mime.multipart import MIMEMultipart
+from email.mime.base import MIMEBase
+from email.mime.text import MIMEText
 from email.header import Header
 from email.generator import Generator
-from email import Charset
-from email import Encoders
+import email.charset as Charset
+import email.encoders as Encoders
+
 # DEFINE SENDMAIL CONFIG
 sendmail = 0
 sendmail_file = open("/etc/setoolkit/set.config", "r").readlines()
@@ -72,22 +80,26 @@ for line in sendmail_file:
         email_provider = line.replace("EMAIL_PROVIDER=", "").lower()
 
         # support smtp for gmail
-        ## Issue ## Set reports the email as successfully sent but I haven't had any success with it
+        # Issue ## Set reports the email as successfully sent but I haven't had
+        # any success with it
         if email_provider == "gmail":
             if sendmail == 0:
                 smtp = ("smtp.gmail.com")
                 port = ("587")
+                print_status(
+                    "If you are using GMAIL - you will need to need to create an application password: https://support.google.com/accounts/answer/6010255?hl=en")
 
         # support smtp for yahoo
         if email_provider == "yahoo":
             if sendmail == 0:
                 smtp = ("smtp.mail.yahoo.com")
-                port = ("587") #This was previously 465 and changed to 587
+                port = ("587")  # This was previously 465 and changed to 587
 
         # support smtp for hotmail
         if email_provider == "hotmail":
             if sendmail == 0:
-                smtp = ("smtp.live.com") #smtp.hotmail.com is no longer in use
+                smtp = ("smtp.live.com")
+                        # smtp.hotmail.com is no longer in use
                 port = ("587")
 
 # DEFINE METASPLOIT PATH
@@ -110,6 +122,7 @@ if os.path.isfile(setdir + "/template.pdf"):
             if choose_payload == '3':
                 file_format = (setdir + "/template.zip")
             counter = 1
+
 if counter == 0:
     if os.path.isfile(setdir + "/template.pdf"):
         file_format = (setdir + "/template.pdf")
@@ -301,7 +314,8 @@ if option1 == '2':
 if option1 == '99':
     exit_set()
 
-print(("""\n  1. Use a %s Account for your email attack.\n  2. Use your own server or open relay\n""" % (email_provider)))
+print(("""\n  1. Use a %s Account for your email attack.\n  2. Use your own server or open relay\n""" %
+      (email_provider)))
 relay = input(setprompt(["1"], ""))
 counter = 0
 # Specify SMTP Option Here
@@ -342,9 +356,8 @@ else:
     prioflag1 = ' 1 (Highest)'
     prioflag2 = ' High'
 
+
 # Define mail send here
-
-
 def mail(to, subject, text, attach, prioflag1, prioflag2):
     msg = MIMEMultipart()
     msg['From'] = str(
@@ -384,6 +397,10 @@ def mail(to, subject, text, attach, prioflag1, prioflag2):
             except:
                 pass
             mailServer.ehlo()
+    if not "gmail|yahoo|hotmail|" in email_provider: 
+        tls = yesno_prompt(["1"], "Does your server support TLS? [yes|no]")
+        if tls == "YES":
+            mailServer.starttls()
     if counter == 0:
         try:
             if email_provider == "gmail" or email_provider == "yahoo" or email_provider == "hotmail":
@@ -396,7 +413,8 @@ def mail(to, subject, text, attach, prioflag1, prioflag2):
                     mailServer.login(provideruser, pwd)
                 mailServer.sendmail(from_address, to, io.getvalue())
         except Exception as e:
-            print_error("Unable to deliver email. Printing exceptions message below, this is most likely due to an illegal attachment. If using GMAIL they inspect PDFs and is most likely getting caught.")
+            print_error(
+                "Unable to deliver email. Printing exceptions message below, this is most likely due to an illegal attachment. If using GMAIL they inspect PDFs and is most likely getting caught.")
             input("Press {return} to view error message.")
             print(str(e))
             try:

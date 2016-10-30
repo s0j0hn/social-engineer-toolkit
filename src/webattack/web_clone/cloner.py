@@ -1,8 +1,8 @@
 #!/usr/bin/env python
-#########################################################################
+#
 # This file clones a website for SET to use in conjunction with the java
 # applet attack.
-#########################################################################
+#
 from src.core.setcore import *
 import subprocess
 import os
@@ -11,6 +11,11 @@ import time
 import re
 import shutil
 import urllib
+# needed for python3
+try: import urllib.request
+except ImportError: 
+    import urllib2
+    pass
 operating_system = check_os()
 definepath = os.getcwd()
 
@@ -54,7 +59,7 @@ if os.path.isfile(setdir + "/proxy.confg"):
 if not os.path.isfile(setdir + "/proxy.confg"):
     proxy_config = "ls"
 
-## if counter == 0: web_port=80
+# if counter == 0: web_port=80
 
 webdav_meta = 0
 # see if exploit requires webdav
@@ -139,18 +144,27 @@ try:
                 'wget', shell=True, stdout=DNULL, stderr=subprocess.STDOUT)
 
             if wget == 1:
-                subprocess.Popen('%s;cd %s/web_clone/;wget --no-check-certificate -O index.html -c -k -U "%s" "%s";' % (
-                    proxy_config, setdir, user_agent, url), stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True).wait()
+                if check_config("WGET_DEEP").lower() == "on":
+                    subprocess.Popen('%s;wget -H -N -k -p -l 2 -nd -P %s/web_clone/ --no-check-certificate -U "%s" "%s";' %
+                                     (proxy_config, setdir, user_agent, url), shell=True).wait()
+                else:
+                    subprocess.Popen('%s;cd %s/web_clone/;wget --no-check-certificate -O index.html -c -k -U "%s" "%s";' %
+                                     (proxy_config, setdir, user_agent, url), stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True).wait()
 
             else:
                 # if we don't have wget installed we will use python to rip,
                 # not as good as wget
                 headers = {'User-Agent': user_agent}
                 # read in the websites
-                req = urllib.request.Request(url, None, headers)
-                # read in the data from the initial request
-                html = urllib.request.urlopen(req).read()
-                # if length isnt much then we didnt get the site cloned
+                try:
+                    req = urllib.request.Request(url, None, headers)
+                    # read in the data from the initial request
+                    html = urllib.request.urlopen(req).read()
+                    # if length isnt much then we didnt get the site cloned
+                except AttributeError:
+                    req = urllib2.Request(url, headers=headers)
+                    html = urllib2.urlopen(req).read()
+
                 if len(html) > 1:
                     # if the site has cloned properly
                     site_cloned = True
@@ -162,7 +176,8 @@ try:
                     filewrite.close()
 
         # if it failed ;(
-        except:
+        except Exception as err:
+            print(err)
             pass
 
         # If the website did not clone properly, exit out.

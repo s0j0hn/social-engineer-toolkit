@@ -84,7 +84,8 @@ def value_type(value):
         'METASPLOIT_MODE': False,
         'HARVESTER_LOG': True,
         'STAGE_ENCODING': False,
-        'TRACK_EMAIL_ADDRESSES': False
+        'TRACK_EMAIL_ADDRESSES': False,
+        'WGET_DEEP': True
     }.get(value, "ERROR")
 
 
@@ -111,24 +112,27 @@ def update_config():
 #######################################################################
 CONFIG_DATE='""" + timestamp + """'\n""")
     for line in init_file:
-        if not line.startswith("#"):
-            line = line.rstrip()
-            line = line.split("=")
-            setting = line[0]
-            value = line[1]
-            if value == "ON":
-                value = "True"
-            elif value == "OFF":
-                value = "False"
-            else:
-                pass
+        try:
+            if not line.startswith("#"):
+                line = line.rstrip()
+                line = line.split("=")
+                setting = line[0]
+                value = line[1]
+                if value == "ON":
+                    value = "True"
+                elif value == "OFF":
+                    value = "False"
+                else:
+                    pass
 
-            quoted = value_type(setting)
+                quoted = value_type(setting)
 
-            if quoted:
-                new_config.write(setting + '="' + value + '"\n')
-            else:
-                new_config.write(setting + '=' + value + '\n')
+                if quoted:
+                    new_config.write(setting + '="' + value + '"\n')
+                else:
+                    new_config.write(setting + '=' + value + '\n')
+        except:
+            pass
 
     init_file.close()
     new_config.close()
